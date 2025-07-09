@@ -1,6 +1,7 @@
 import * as ex from 'excalibur'
 import { PhysicsScene } from './scenes/physics'
 import './style.css'
+import { MenuScene } from './scenes/menu'
 
 const game = new ex.Engine({
   width: 800,
@@ -12,8 +13,9 @@ const game = new ex.Engine({
     gravity: ex.vec(0, 800),
   },
   scenes: {
+    menu: new MenuScene(),
     physics: new PhysicsScene(),
   },
 })
 
-game.start('physics')
+game.start('menu')
