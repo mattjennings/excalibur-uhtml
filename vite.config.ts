@@ -7,5 +7,14 @@ export default defineConfig({
       entry: 'src/index.ts',
       formats: ['umd', 'es'],
     },
+    rollupOptions: {
+      external: ['excalibur', 'uhtml'],
+      output: {
+        globals: {
+          excalibur: 'ex',
+          uhtml: 'uhtml',
+        },
+      },
+    },
   },
 })

@@ -1,6 +1,6 @@
 {
   "name": "excalibur-uhtml",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "main": "./dist/excalibur-uhtml.umd.cjs",
   "files": [
@@ -17,11 +17,12 @@
     "dev": "cd example && vite",
     "build": "vite build && tsc",
     "build-example": "cd example && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^24.0.12",
-    "excalibur": "^0.30.0",
+    "excalibur": "^0.31.0-alpha.1467",
     "prettier": "^3.3.3",
     "typescript": "^5.8.0",
     "vite": "^7.0.0"
