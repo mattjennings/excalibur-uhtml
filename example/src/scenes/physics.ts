@@ -32,20 +32,16 @@ class UIExample extends ex.Actor {
 
   ui = new UIComponent(
     (html) => html`
-      <button
-        data-width=${this.width}
-        data-height=${this.height}
-        @click=${this.shove}
-      >
-        click me
-      </button>
+      <button @click=${this.shove}>click me</button>
 
       <style>
+        ${`
         button {
           font-size: 32px;
-          width: calc(attr(data-width px));
-          height: calc(attr(data-height px));
+          width: ${this.width}px;
+          height: ${this.height}px;
         }
+        `}
       </style>
     `,
   )
@@ -61,7 +57,6 @@ class UIExample extends ex.Actor {
     })
     this.addComponent(this.ui)
     this.shove()
-    console.log(this.width)
   }
 
   shove = () => {
@@ -86,8 +81,8 @@ class UIExample extends ex.Actor {
 class Plane extends ex.Actor {
   constructor(direction = 'horizontal', x: number, y: number) {
     super({
-      width: direction === 'horizontal' ? 9999 : 20,
-      height: direction === 'horizontal' ? 10 : 9999,
+      width: direction === 'horizontal' ? 2000 : 20,
+      height: direction === 'horizontal' ? 10 : 2000,
       anchor: ex.vec(0, 0),
       color: ex.Color.Green,
       collisionType: ex.CollisionType.Fixed,
