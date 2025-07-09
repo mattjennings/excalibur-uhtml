@@ -28,6 +28,7 @@
     "vite": "^7.0.0"
   },
   "dependencies": {
+    "@lit-labs/scoped-registry-mixin": "^1.0.4",
     "uhtml": "^4.7.1"
   }
 }

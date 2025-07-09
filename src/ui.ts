@@ -1,18 +1,20 @@
-import { Hole, Value, html, render } from 'uhtml'
 import {
-  System,
-  type Query,
-  SystemType,
-  type Engine,
   Component,
   CoordPlane,
   Entity,
   Scene,
+  System,
+  SystemType,
   TransformComponent,
   Vector,
   World,
   vec,
+  type Engine,
+  type Query,
 } from 'excalibur'
+import { Hole, render, html as uhtml } from 'uhtml'
+import { UIHostContext } from './engine-context'
+import { getPixelConversion } from './util'
 
 export class UISystem extends System {
   systemType = SystemType.Draw
@@ -25,18 +27,24 @@ export class UISystem extends System {
 
     this.engine = scene.engine
 
-    // size this.root overtop canvas
-    this.root.style.position = 'absolute'
     this.resizeToCanvas()
 
     window.addEventListener('resize', this.resizeToCanvas.bind(this))
-    document.body.appendChild(this.root)
+
+    scene.on('deactivate', () => {
+      this.root.remove()
+    })
+
+    scene.on('activate', () => {
+      document.body.appendChild(this.root)
+    })
   }
 
   resizeToCanvas() {
     const canvas = this.engine.canvas
 
     const rect = canvas.getBoundingClientRect()
+    this.root.style.position = 'absolute'
     this.root.style.top = rect.top + 'px'
     this.root.style.left = rect.left + 'px'
     this.root.style.width = `${rect.width}px`
@@ -46,23 +54,15 @@ export class UISystem extends System {
 
     this.root.style.setProperty(
       '--ex-pixel',
-      this.getPixelConversion().toString(),
+      getPixelConversion(this.engine).toString(),
     )
   }
 
   update() {
     for (const entity of this.query.entities) {
       const comp = entity.get(UIComponent)
-      comp.draw()
+      comp.update()
     }
-  }
-
-  getPixelConversion() {
-    const origin = this.engine.screen.worldToPageCoordinates(Vector.Zero)
-    const singlePixel = this.engine.screen
-      .worldToPageCoordinates(vec(1, 0))
-      .sub(origin)
-    return singlePixel.x
   }
 }
 
@@ -85,31 +85,31 @@ export interface UIComponentOptions {
 export class UIComponent extends Component {
   type = 'UIComponent'
 
-  root?: HTMLElement
   shadow?: ShadowRoot
   coordPlane?: CoordPlane
-  draw: () => void
-  scoped?: boolean
+  draw: () => Hole
+
+  host: HTMLElement
 
   private system?: UISystem
 
-  constructor(
-    draw: (
-      html: (template: TemplateStringsArray, ...values: Value[]) => Hole,
-    ) => Hole,
-    options: UIComponentOptions = {},
-  ) {
+  constructor(draw: () => Hole, options: UIComponentOptions = {}) {
     super()
 
     this.coordPlane = options.coordPlane
-    this.scoped = options.scoped
+    this.draw = draw
 
-    this.draw = () => {
-      if (this.root) {
-        this.updatePosition()
-        render(this.scoped ? this.shadow : this.root, draw(html))
-      }
+    this.host = document.createElement('div')
+    if (options.scoped) {
+      this.host.attachShadow({ mode: 'open' })
     }
+    this.host.style.pointerEvents = 'unset'
+    this.host.style.position = 'relative'
+    this.host.style.height = '100%'
+    this.host.style.width = '100%'
+    this.host.style.transformOrigin = '0 0'
+    this.host.style.transform =
+      'scale(var(--ex-pixel), var(--ex-pixel)) translate(calc(var(--x, 0)), calc(var(--y, 0))'
   }
 
   onAdd(owner: Entity<any>): void {
@@ -123,6 +123,18 @@ export class UIComponent extends Component {
     owner.on('kill', this.detach)
   }
 
+  update() {
+    this.updatePosition()
+
+    if (this.owner) {
+      return UIHostContext.scope({ owner: this.owner! }, () => {
+        render(this.host.shadowRoot ? this.host.shadowRoot : this.host, () => {
+          return this.draw()
+        })
+      })
+    }
+  }
+
   attach = () => {
     if (this.owner?.scene) {
       this.system =
@@ -130,21 +142,7 @@ export class UIComponent extends Component {
 
       if (this.system) {
         this.coordPlane ??= this.owner!.get(TransformComponent)?.coordPlane
-        this.root = document.createElement('div')
-        this.root.style.position = 'relative'
-        this.root.style.height = '100%'
-        this.root.style.width = '100%'
-        this.root.style.transformOrigin = '0 0'
-        this.root.style.transform =
-          'scale(var(--ex-pixel), var(--ex-pixel)) translate(calc(var(--x, 0)), calc(var(--y, 0))'
-        this.root.style.pointerEvents = 'auto'
-
-        if (this.scoped) {
-          this.shadow = this.root.attachShadow({ mode: 'open' })
-          this.root.appendChild(this.shadow)
-        }
-
-        this.system.root.append(this.root)
+        this.system.root.append(this.host)
 
         this.owner!.scene!.once('deactivate', this.detach)
       } else {
@@ -154,12 +152,12 @@ export class UIComponent extends Component {
   }
 
   detach = () => {
-    this.root?.remove()
+    this.host?.remove()
     this.owner?.scene?.once('activate', this.attach)
   }
 
   updatePosition() {
-    if (this.root && this.owner) {
+    if (this.host && this.owner?.scene) {
       if (this.coordPlane === CoordPlane.World) {
         const transform = this.owner.get(TransformComponent)
 
@@ -168,16 +166,21 @@ export class UIComponent extends Component {
             transform.pos,
           )
 
-        const conversion = this.system?.getPixelConversion()
+        const conversion = getPixelConversion(this.owner.scene.engine)
 
         if (screenCoords && conversion) {
-          this.root.style.setProperty('--x', screenCoords.x.toString() + 'px')
-          this.root.style.setProperty('--y', screenCoords.y.toString() + 'px')
+          this.host.style.setProperty('--x', screenCoords.x.toString() + 'px')
+          this.host.style.setProperty('--y', screenCoords.y.toString() + 'px')
         } else {
-          this.root.style.setProperty('--x', '0px')
-          this.root.style.setProperty('--y', '0px')
+          this.host.style.setProperty('--x', '0px')
+          this.host.style.setProperty('--y', '0px')
         }
       }
     }
   }
+}
+
+export function html(strings: TemplateStringsArray, ...values: any[]) {
+  const result = uhtml(strings, ...values)
+  return result
 }

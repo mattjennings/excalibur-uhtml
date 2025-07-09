@@ -1,5 +1,5 @@
 import * as ex from 'excalibur'
-import { UIComponent, UISystem } from 'excalibur-uhtml'
+import { html, UIComponent, UISystem } from 'excalibur-uhtml'
 
 export class PhysicsScene extends ex.Scene {
   constructor() {
@@ -28,15 +28,14 @@ export class PhysicsScene extends ex.Scene {
 }
 
 class UIExample extends ex.Actor {
-  text = 0
-
   ui = new UIComponent(
-    (html) => html`
+    () => html`
       <button @click=${this.shove}>click me</button>
 
       <style>
         ${`
         button {
+          pointer-events: auto;
           font-size: 32px;
           width: ${this.width}px;
           height: ${this.height}px;

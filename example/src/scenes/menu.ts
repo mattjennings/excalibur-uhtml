@@ -1,5 +1,5 @@
 import * as ex from 'excalibur'
-import { UIComponent, UISystem } from 'excalibur-uhtml'
+import { html, UIComponent, UISystem } from 'excalibur-uhtml'
 
 export class MenuScene extends ex.Scene {
   constructor() {
@@ -14,27 +14,56 @@ export class MenuScene extends ex.Scene {
 }
 
 class Menu extends ex.ScreenElement {
-  text = 0
+  handler = () => {
+    console.log('asdf')
+  }
 
   ui = new UIComponent(
-    (html) => html`
+    () => html`
       <h1>Examples</h1>
+
       <div id="menu">
-        <button @click=${() => this.scene!.engine.goToScene('physics')}>
-          Physics
-        </button>
+        ${Button({
+          label: 'Physics',
+          onClick: () => this.scene!.engine.goToScene('physics'),
+        })}
+      </div>
+
+      <div
+        style="display: flex; margin-top: 40px; justify-content: space-between;"
+      >
+        <ex-entity
+          class="box"
+          .this=${[
+            ex.Actor,
+            {
+              anchor: ex.vec(0, 0),
+              width: 100,
+              height: 100,
+              color: ex.Color.Green,
+            },
+          ]}
+          @pointermove=${this.handler}
+        />
       </div>
 
       <style>
-        div {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          gap: 8px;
-          background: blue;
+        .box {
+          pointer-events: auto;
+          border: 2px solid red;
+          width: 100px;
+          height: 100px;
+          transition: transform 0.3s ease-in-out;
+          transform: translate(0px, 0px);
+          cursor: pointer;
+        }
+
+        .box:hover {
+          transform: translate(0px, -10px);
         }
 
         button {
+          pointer-events: auto;
           height: 28px;
         }
       </style>
@@ -48,3 +77,7 @@ class Menu extends ex.ScreenElement {
     this.addComponent(this.ui)
   }
 }
+
+const Button = (props: { label: string; onClick: () => void }) => html`
+  <button @click=${props.onClick}>${props.label}</button>
+`
