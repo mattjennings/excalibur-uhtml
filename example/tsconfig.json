@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "excalibur-uhtml": ["../src/index.ts"]
+    }
+  },
+  "include": ["../src", "src"]
+}

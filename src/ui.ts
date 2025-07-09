@@ -29,15 +29,14 @@ export class UISystem extends ex.System {
     this.root.style.width = `${rect.width}px`
     this.root.style.height = `${rect.height}px`
     this.root.style.overflow = 'hidden'
-    this.root.style.transform
 
     this.root.style.setProperty(
-      '--pixel-conversion',
+      '--ex-pixel',
       this.getPixelConversion().toString(),
     )
   }
 
-  update(elapsedMs: number): void {
+  update() {
     for (const entity of this.query.entities) {
       const comp = entity.get(UIComponent)
       comp.draw()
@@ -53,26 +52,39 @@ export class UISystem extends ex.System {
   }
 }
 
-export class UIComponent extends ex.Component {
-  type = 'UI'
-  root?: HTMLElement
-  draw: () => void
-  system?: UISystem
-
+export interface UIComponentOptions {
+  /**
+   * If set to ex.CoordPlane.Screen, HTML will be positioned relative to the screen. If set to
+   * ex.CoordPlane.World, HTML will be positioned relative to its entity (this means
+   * it will go off screen if entity is off screen)
+   *
+   * By default it inherits from the entity.
+   */
   coordPlane?: ex.CoordPlane
+}
+
+export class UIComponent extends ex.Component {
+  type = 'UIComponent'
+
+  root?: HTMLElement
+  coordPlane?: ex.CoordPlane
+  draw: () => void
+
+  private system?: UISystem
 
   constructor(
     draw: (
       html: (template: TemplateStringsArray, ...values: Value[]) => Hole,
     ) => Hole,
-    args: { coordPlane: ex.CoordPlane },
+    options: UIComponentOptions = {},
   ) {
     super()
 
-    this.coordPlane = args.coordPlane
+    this.coordPlane = options.coordPlane
 
     this.draw = () => {
       if (this.root) {
+        this.updatePosition()
         render(this.root, draw(html))
       }
     }
@@ -86,10 +98,6 @@ export class UIComponent extends ex.Component {
         this.attach()
       })
     }
-
-    owner.on('postupdate', () => {
-      this.updatePosition()
-    })
   }
 
   attach() {
@@ -102,7 +110,7 @@ export class UIComponent extends ex.Component {
       this.root.style.position = 'relative'
       this.root.style.transformOrigin = '0 0'
       this.root.style.transform =
-        'scale(var(--pixel-conversion), var(--pixel-conversion)) translate(calc(var(--x, 0)), calc(var(--y, 0))'
+        'scale(var(--ex-pixel), var(--ex-pixel)) translate(calc(var(--x, 0)), calc(var(--y, 0))'
       this.system.root.append(this.root)
     } else {
       throw new Error('UISystem not found')
@@ -117,16 +125,20 @@ export class UIComponent extends ex.Component {
     if (this.root && this.owner) {
       if (this.coordPlane === ex.CoordPlane.World) {
         const transform = this.owner.get(ex.TransformComponent)
-        // worldToScreenCoordinates
+
         const screenCoords =
           this.owner?.scene?.engine.screen.worldToScreenCoordinates(
             transform.pos,
           )
+
         const conversion = this.system?.getPixelConversion()
 
         if (screenCoords && conversion) {
           this.root.style.setProperty('--x', screenCoords.x.toString() + 'px')
           this.root.style.setProperty('--y', screenCoords.y.toString() + 'px')
+        } else {
+          this.root.style.setProperty('--x', '0px')
+          this.root.style.setProperty('--y', '0px')
         }
       }
     }

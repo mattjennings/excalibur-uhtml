@@ -1,7 +1,11 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  optimizeDeps: {},
-  resolve: {},
-  plugins: [],
+  build: {
+    lib: {
+      name: 'excalibur-uhtml',
+      entry: 'src/index.ts',
+      formats: ['umd', 'es'],
+    },
+  },
 })
