@@ -2,12 +2,15 @@
   "name": "excalibur-uhtml",
   "version": "0.0.1",
   "type": "module",
-  "main": "./dist/index.umd.js",
+  "main": "./dist/excalibur-uhtml.umd.cjs",
+  "files": [
+    "dist/**/*"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.esm.js",
-      "require": "./dist/index.umd.js"
+      "import": "./dist/excalibur-uhtml.js",
+      "require": "./dist/excalibur-uhtml.umd.cjs"
     }
   },
   "scripts": {
